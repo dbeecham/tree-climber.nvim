@@ -142,7 +142,7 @@ end
 
 local function get_current_node_path(options)
   local cursor = get_cursor()
-  local main_parser = require('nvim-treesitter.parsers').get_parser()
+  local main_parser = vim.treesitter.get_parser()
   if not main_parser then
     return
   end
@@ -238,7 +238,25 @@ local function swap_with(new_path_getter, options)
   local new_node = new_path[#new_path]
 
   set_node_level(new_path)
-  require('nvim-treesitter.ts_utils').swap_nodes(node, new_node, 0, true)
+
+  local bufnr = vim.api.nvim_get_current_buf()
+  local text1 = vim.treesitter.get_node_text(node, bufnr)
+  local text2 = vim.treesitter.get_node_text(new_node, bufnr)
+  local lines1 = vim.split(text1, '\n', { plain = true })
+  local lines2 = vim.split(text2, '\n', { plain = true })
+
+  local sr1, sc1, er1, ec1 = node:range()
+  local sr2, sc2, er2, ec2 = new_node:range()
+
+  -- Always replace the later node first so that the earlier node's
+  -- buffer position is not shifted by the first replacement.
+  if sr1 > sr2 or (sr1 == sr2 and sc1 > sc2) then
+    vim.api.nvim_buf_set_text(bufnr, sr1, sc1, er1, ec1, lines2)
+    vim.api.nvim_buf_set_text(bufnr, sr2, sc2, er2, ec2, lines1)
+  else
+    vim.api.nvim_buf_set_text(bufnr, sr2, sc2, er2, ec2, lines1)
+    vim.api.nvim_buf_set_text(bufnr, sr1, sc1, er1, ec1, lines2)
+  end
 end
 
 M.goto_next = function(options)

@@ -3,8 +3,6 @@
 
 local M = {}
 
-local ts_utils = require 'nvim-treesitter.ts_utils'
-
 local node_ns = vim.api.nvim_create_namespace 'tree_climber_hlnode'
 local node_timer
 
@@ -32,7 +30,12 @@ function M.highlight_node(node, opts)
     node_timer:close()
   end
 
-  ts_utils.highlight_node(node, bufnr, node_ns, higroup)
+  local start_row, start_col, end_row, end_col = node:range()
+  vim.api.nvim_buf_set_extmark(bufnr, node_ns, start_row, start_col, {
+    end_row = end_row,
+    end_col = end_col,
+    hl_group = higroup,
+  })
   node_timer = vim.defer_fn(function()
     node_timer = nil
     if vim.api.nvim_buf_is_valid(bufnr) then
